@@ -1,0 +1,23 @@
+{
+  "target": "bugbounty.ru",
+  "scan": {
+    "status": 200,
+    "findings": [
+      {
+        "sev": "MEDIUM",
+        "vuln": "Clickjacking"
+      },
+      {
+        "sev": "LOW",
+        "vuln": "No CSP"
+      }
+    ]
+  },
+  "recon": {
+    "ip": "176.114.73.7",
+    "subdomains": [
+      "www.bugbounty.ru",
+      "bugbounty.ru"
+    ]
+  }
+}
