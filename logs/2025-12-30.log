@@ -1,0 +1,8 @@
+[18:57:44][MAIN] INFO: NEXUS initialized
+[18:57:51][MAIN] INFO: NEXUS initialized
+[18:57:51][MAIN] INFO: Execute: recon example.com
+[18:57:51][DISPATCH] INFO: Task -> recon: recon example.com
+[18:58:26][MAIN] INFO: NEXUS initialized
+[18:58:32][MAIN] INFO: NEXUS initialized
+[18:58:32][MAIN] INFO: Execute: scan example.com
+[18:58:32][DISPATCH] INFO: Task -> scanner: scan example.com

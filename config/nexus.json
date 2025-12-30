@@ -1,0 +1,17 @@
+{
+    "mode": "active",
+    "log_level": "INFO",
+    "telegram": {
+        "chat_id": "1198523752",
+        "alerts": true
+    },
+    "github": {
+        "user": "djontrevor4",
+        "auto_commit": false
+    },
+    "scan": {
+        "timeout": 10,
+        "threads": 5,
+        "user_agent": "NEXUS/1.0"
+    }
+}
