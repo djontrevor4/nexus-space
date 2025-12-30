@@ -1,0 +1,91 @@
+name: NEXUS Parallel Scanner
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Targets (comma-separated)'
+        required: true
+        default: 'example.com'
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        scanner: [nuclei, headers, paths, subdomains, ports]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install tools
+        run: |
+          pip install requests urllib3
+          if [ "${{ matrix.scanner }}" = "nuclei" ]; then
+            go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest 2>/dev/null || true
+          fi
+
+      - name: Run ${{ matrix.scanner }}
+        env:
+          TARGETS: ${{ github.event.inputs.targets }}
+        run: |
+          python3 -c "
+          import os, requests as r
+          targets = os.environ['TARGETS'].split(',')
+          scanner = '${{ matrix.scanner }}'
+
+          for t in targets:
+              t = t.strip()
+              base = f'https://{t}' if not t.startswith('http') else t
+              print(f'[{scanner}] Scanning {t}')
+
+              if scanner == 'headers':
+                  resp = r.get(base, timeout=10, verify=False)
+                  for h in ['X-Frame-Options','CSP','HSTS']:
+                      if h not in str(resp.headers):
+                          print(f'  MISSING: {h}')
+
+              elif scanner == 'paths':
+                  for p in ['/.env','/.git/HEAD','/api','/admin','/swagger.json']:
+                      try:
+                          resp = r.get(f'{base}{p}', timeout=5, verify=False, allow_redirects=False)
+                          if resp.status_code == 200:
+                              print(f'  EXPOSED: {p}')
+                      except: pass
+
+              elif scanner == 'subdomains':
+                  domain = t.replace('https://','').replace('http://','').split('/')[0]
+                  try:
+                      resp = r.get(f'https://crt.sh/?q=%.{domain}&output=json', timeout=30)
+                      subs = set()
+                      for c in resp.json()[:100]:
+                          for s in c.get('name_value','').split():
+                              if domain in s: subs.add(s.replace('*.',''))
+                      print(f'  Found {len(subs)} subdomains')
+                      for s in list(subs)[:20]: print(f'    {s}')
+                  except: pass
+
+              elif scanner == 'ports':
+                  import socket
+                  domain = t.replace('https://','').replace('http://','').split('/')[0]
+                  try:
+                      ip = socket.gethostbyname(domain)
+                      for port in [21,22,80,443,3306,8080,8443]:
+                          s = socket.socket()
+                          s.settimeout(1)
+                          if s.connect_ex((ip,port)) == 0:
+                              print(f'  OPEN: {port}')
+                          s.close()
+                  except: pass
+          "
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.scanner }}
+          path: "*.json"
+          retention-days: 30
